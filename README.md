@@ -1,4 +1,4 @@
-# Vinyl Social 🎵
+# Eu-ter-pe 🎵
 
 > **Discover music through people, not algorithms**
 
@@ -16,7 +16,7 @@ Recommendations feel cold and algorithmic. The joy of discovering music through 
 
 ## 💡 The Solution
 
-**Vinyl Social** is a unified platform where you can:
+**Eu-ter-pe** is a unified platform where you can:
 
 - 📊 **Track Everything**: Connect your streaming, log your vinyl collection, record concerts you've attended
 - 📋 **Create Boards**: Curate themed collections of albums, artists, vinyl finds, and live shows
@@ -88,7 +88,7 @@ All tables include Row Level Security (RLS) policies for data protection.
 ```bash
 # Clone the repository
 git clone <YOUR_GIT_URL>
-cd vinyl-social
+cd eu-ter-pe
 
 # Install dependencies
 npm install
