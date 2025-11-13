@@ -1,0 +1,175 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Music, LogOut, User, Plus, Disc3 } from "lucide-react";
+import { toast } from "sonner";
+
+interface Board {
+  id: string;
+  title: string;
+  description: string | null;
+  board_type: string;
+  created_at: string;
+  profiles: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+const Feed = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    checkUser();
+    fetchBoards();
+  }, []);
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+    setUser(session.user);
+  };
+
+  const fetchBoards = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("boards")
+        .select(`
+          *,
+          profiles (
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setBoards(data || []);
+    } catch (error: any) {
+      toast.error("Failed to load feed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card sticky top-0 z-10 shadow-soft">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Disc3 className="h-8 w-8 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">Vinyl Social</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/create-board")}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Board
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
+              <User className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold mb-2">Your Feed</h2>
+            <p className="text-muted-foreground">
+              Discover music through boards curated by the community
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-20 bg-muted rounded" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : boards.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No boards yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Be the first to create a board and share your music taste!
+                </p>
+                <Button onClick={() => navigate("/create-board")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Board
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {boards.map((board) => (
+                <Card key={board.id} className="hover:shadow-medium transition-shadow cursor-pointer">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={board.profiles.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {board.profiles.display_name?.[0] || board.profiles.username[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg">{board.title}</CardTitle>
+                          <CardDescription>
+                            by {board.profiles.display_name || board.profiles.username}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+                        {board.board_type}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  {board.description && (
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{board.description}</p>
+                    </CardContent>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Feed;
