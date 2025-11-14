@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Music, LogOut, User, Plus, Disc3, Search } from "lucide-react";
+import { Music, LogOut, User, Plus, Disc3, Search, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { AlbumRatingDialog } from "@/components/AlbumRatingDialog";
 
@@ -141,6 +141,10 @@ const Feed = () => {
               <Button variant="outline" size="sm" onClick={() => navigate("/music-search")}>
                 <Music className="h-4 w-4 mr-2" />
                 Music DB
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate("/concerts")}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Concerts
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigate("/create-board")}>
                 <Plus className="h-4 w-4 mr-2" />
