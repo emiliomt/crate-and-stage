@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import SpotifySearch from "@/components/SpotifySearch";
 
 const CreateBoard = () => {
   const navigate = useNavigate();
@@ -118,6 +119,15 @@ const CreateBoard = () => {
                   </Button>
                 </div>
               </form>
+
+              <div className="mt-8 pt-8 border-t">
+                <h3 className="text-lg font-semibold mb-4">Add Music from Spotify</h3>
+                <SpotifySearch 
+                  onSelectItem={(item) => {
+                    toast.success(`Selected: ${item.name}`);
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
