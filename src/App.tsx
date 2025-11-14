@@ -13,6 +13,8 @@ import ArtistDetail from "./pages/ArtistDetail";
 import AlbumDetail from "./pages/AlbumDetail";
 import AlbumDetailPage from "./pages/AlbumDetailPage";
 import Concerts from "./pages/Concerts";
+import Lists from "./pages/Lists";
+import Boards from "./pages/Boards";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/album/:albumId" element={<AlbumDetail />} />
           <Route path="/album-detail/:albumId" element={<AlbumDetailPage />} />
           <Route path="/concerts" element={<Concerts />} />
+          <Route path="/lists" element={<Lists />} />
+          <Route path="/boards" element={<Boards />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

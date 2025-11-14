@@ -27,8 +27,11 @@ const Index = () => {
               <Button size="lg" variant="secondary" onClick={() => navigate("/auth")}>
                 Get Started
               </Button>
-              <Button size="lg" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-                Learn More
+              <Button size="lg" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20" onClick={() => navigate("/lists")}>
+                Browse Lists
+              </Button>
+              <Button size="lg" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20" onClick={() => navigate("/boards")}>
+                Community Boards
               </Button>
             </div>
           </div>
@@ -46,32 +49,32 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="shadow-soft hover:shadow-medium transition-shadow">
+            <Card className="shadow-soft hover:shadow-medium transition-shadow cursor-pointer" onClick={() => navigate("/lists")}>
               <CardHeader>
                 <Disc className="h-12 w-12 text-vinyl-red mb-4" />
-                <CardTitle>Vinyl & Physical</CardTitle>
+                <CardTitle>Music Lists</CardTitle>
                 <CardDescription>
-                  Track your collection, wishlist, and discover rare editions
+                  Create narrative-driven playlists with stories and discover curated collections
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="shadow-soft hover:shadow-medium transition-shadow">
+            <Card className="shadow-soft hover:shadow-medium transition-shadow cursor-pointer" onClick={() => navigate("/boards")}>
               <CardHeader>
-                <Music className="h-12 w-12 text-teal mb-4" />
-                <CardTitle>Streaming Integration</CardTitle>
+                <Users className="h-12 w-12 text-teal mb-4" />
+                <CardTitle>Community Boards</CardTitle>
                 <CardDescription>
-                  Connect Spotify to import your listening history and favorites
+                  Join themed boards and discover music through community curation
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="shadow-soft hover:shadow-medium transition-shadow">
+            <Card className="shadow-soft hover:shadow-medium transition-shadow cursor-pointer" onClick={() => navigate("/feed")}>
               <CardHeader>
-                <Users className="h-12 w-12 text-accent mb-4" />
-                <CardTitle>Concert Tracking</CardTitle>
+                <Music className="h-12 w-12 text-accent mb-4" />
+                <CardTitle>Social Feed</CardTitle>
                 <CardDescription>
-                  Log shows you've attended and discover upcoming events
+                  See what friends are listening to, rating, and adding to their collections
                 </CardDescription>
               </CardHeader>
             </Card>
