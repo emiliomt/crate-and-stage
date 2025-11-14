@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, Star, Music, Calendar, Clock, Globe, 
-  FileText, ListMusic, Share2, Copy, Heart, Ticket 
+  FileText, ListMusic, Share2, Copy, Heart, Ticket, ExternalLink, Disc3
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { DiscogsVinylResult } from "@/types/discogs";
 
 interface AlbumData {
   id: string;
@@ -98,6 +99,9 @@ export default function AlbumDetailPage() {
   const [reviewRating, setReviewRating] = useState<number>(0);
   const [reviewHoverRating, setReviewHoverRating] = useState<number>(0);
   const [userReview, setUserReview] = useState<ReviewData | null>(null);
+  const [vinylResults, setVinylResults] = useState<DiscogsVinylResult[]>([]);
+  const [vinylLoading, setVinylLoading] = useState(false);
+  const [vinylDialogOpen, setVinylDialogOpen] = useState(false);
 
   useEffect(() => {
     if (albumId) {
@@ -300,6 +304,30 @@ export default function AlbumDetailPage() {
     } catch (error) {
       console.error("Error saving track rating:", error);
       toast.error("Failed to save rating");
+    }
+  };
+
+  const fetchVinylAvailability = async () => {
+    if (!album) return;
+
+    setVinylLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('discogs-vinyl', {
+        body: { 
+          artist: album.artist,
+          album: album.name 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.results) {
+        setVinylResults(data.results);
+      }
+    } catch (error) {
+      console.error('Error fetching vinyl availability:', error);
+    } finally {
+      setVinylLoading(false);
     }
   };
 
@@ -916,16 +944,27 @@ export default function AlbumDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Vinyl Availability Placeholder */}
+            {/* Vinyl Availability */}
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold mb-4">Vinyl & Physical Formats</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold">Vinyl & Physical Formats</h3>
+                  <Disc3 className="h-5 w-5 text-vinyl-red" />
+                </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Check availability on various platforms
+                  Check vinyl availability on Discogs
                 </p>
-                <Button variant="outline" className="w-full" disabled>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => {
+                    fetchVinylAvailability();
+                    setVinylDialogOpen(true);
+                  }}
+                  disabled={!album}
+                >
                   <Globe className="h-4 w-4 mr-2" />
-                  Check Availability (Coming Soon)
+                  Check Vinyl Availability
                 </Button>
               </CardContent>
             </Card>
@@ -1078,6 +1117,76 @@ export default function AlbumDetailPage() {
               </a>
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vinyl Availability Dialog */}
+      <Dialog open={vinylDialogOpen} onOpenChange={setVinylDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vinyl Availability for {album?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {vinylLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : vinylResults.length > 0 ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Found {vinylResults.length} vinyl pressings on Discogs
+              </p>
+              {vinylResults.map((vinyl) => (
+                <Card key={vinyl.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex gap-4">
+                      {vinyl.coverImage && (
+                        <img 
+                          src={vinyl.coverImage} 
+                          alt={vinyl.title}
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm mb-1 truncate">{vinyl.title}</h4>
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          {vinyl.year && <p>Year: {vinyl.year}</p>}
+                          {vinyl.country && <p>Country: {vinyl.country}</p>}
+                          <p>Format: {vinyl.format}</p>
+                          <p>Label: {vinyl.label}</p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="mt-2"
+                          onClick={() => window.open(`https://www.discogs.com${vinyl.uri}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          View on Discogs
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Disc3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No vinyl pressings found</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Try searching directly on{' '}
+                <a 
+                  href={`https://www.discogs.com/search/?q=${encodeURIComponent(album?.name || '')}&type=release`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Discogs
+                </a>
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
