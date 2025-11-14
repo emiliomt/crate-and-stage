@@ -32,13 +32,14 @@ serve(async (req) => {
 
     // Search for vinyl releases
     const searchQuery = encodeURIComponent(`${artist} ${album}`);
-    const searchUrl = `https://api.discogs.com/database/search?q=${searchQuery}&type=release&format=vinyl&per_page=10&token=${discogsToken}`;
+    const searchUrl = `https://api.discogs.com/database/search?q=${searchQuery}&type=release&format=vinyl&per_page=10`;
 
-    console.log('Searching Discogs:', searchUrl);
+    console.log('Searching Discogs for:', artist, album);
 
     const response = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'MusicboardApp/1.0',
+        'Authorization': `Discogs token=${discogsToken}`,
       },
     });
 
