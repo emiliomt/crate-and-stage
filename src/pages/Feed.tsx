@@ -7,6 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Music, LogOut, User, Plus, Disc3 } from "lucide-react";
 import { toast } from "sonner";
 
+interface Album {
+  id: string;
+  name: string;
+  artist: string;
+  image: string;
+  releaseDate: string;
+  type: string;
+}
+
 interface Board {
   id: string;
   title: string;
@@ -24,11 +33,14 @@ const Feed = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [boards, setBoards] = useState<Board[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [albumsLoading, setAlbumsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     checkUser();
     fetchBoards();
+    fetchRecommendations();
   }, []);
 
   const checkUser = async () => {
@@ -65,6 +77,19 @@ const Feed = () => {
     }
   };
 
+  const fetchRecommendations = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('spotify-recommendations');
+      
+      if (error) throw error;
+      setAlbums(data.albums || []);
+    } catch (error: any) {
+      console.error('Failed to load recommendations:', error);
+    } finally {
+      setAlbumsLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -72,7 +97,6 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-10 shadow-soft">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -94,78 +118,122 @@ const Feed = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Your Feed</h2>
-            <p className="text-muted-foreground">
-              Discover music through boards curated by the community
-            </p>
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">Popular This Week</h2>
+                <p className="text-sm text-muted-foreground">New releases and trending albums</p>
+              </div>
+            </div>
+            
+            {albumsLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="aspect-square bg-muted rounded-lg mb-2" />
+                    <div className="h-4 bg-muted rounded w-3/4 mb-1" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {albums.map((album) => (
+                  <div
+                    key={album.id}
+                    className="group cursor-pointer"
+                    onClick={() => toast.info(`${album.name} by ${album.artist}`)}
+                  >
+                    <div className="aspect-square rounded-lg overflow-hidden mb-2 shadow-medium transition-transform group-hover:scale-105">
+                      <img
+                        src={album.image}
+                        alt={album.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                      {album.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-muted rounded w-1/3 mb-2" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-20 bg-muted rounded" />
-                  </CardContent>
-                </Card>
-              ))}
+          <div className="max-w-3xl mx-auto">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">Community Boards</h2>
+              <p className="text-muted-foreground">
+                Discover music through boards curated by the community
+              </p>
             </div>
-          ) : boards.length === 0 ? (
-            <Card className="text-center py-12">
-              <CardContent>
-                <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No boards yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Be the first to create a board and share your music taste!
-                </p>
-                <Button onClick={() => navigate("/create-board")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Board
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {boards.map((board) => (
-                <Card key={board.id} className="hover:shadow-medium transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={board.profiles.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {board.profiles.display_name?.[0] || board.profiles.username[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-lg">{board.title}</CardTitle>
-                          <CardDescription>
-                            by {board.profiles.display_name || board.profiles.username}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <span className="text-xs bg-secondary px-2 py-1 rounded-full">
-                        {board.board_type}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  {board.description && (
+
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                    </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">{board.description}</p>
+                      <div className="h-20 bg-muted rounded" />
                     </CardContent>
-                  )}
-                </Card>
-              ))}
-            </div>
-          )}
+                  </Card>
+                ))}
+              </div>
+            ) : boards.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No boards yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Be the first to create a board and share your music taste!
+                  </p>
+                  <Button onClick={() => navigate("/create-board")}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Board
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {boards.map((board) => (
+                  <Card key={board.id} className="hover:shadow-medium transition-shadow cursor-pointer">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={board.profiles.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {board.profiles.display_name?.[0] || board.profiles.username[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-lg">{board.title}</CardTitle>
+                            <CardDescription>
+                              by {board.profiles.display_name || board.profiles.username}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+                          {board.board_type}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    {board.description && (
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">{board.description}</p>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>
