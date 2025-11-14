@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      album_ratings: {
+        Row: {
+          album_image: string | null
+          album_name: string
+          artist_name: string
+          created_at: string | null
+          id: string
+          rating: number
+          spotify_album_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          album_image?: string | null
+          album_name: string
+          artist_name: string
+          created_at?: string | null
+          id?: string
+          rating: number
+          spotify_album_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          album_image?: string | null
+          album_name?: string
+          artist_name?: string
+          created_at?: string | null
+          id?: string
+          rating?: number
+          spotify_album_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       board_items: {
         Row: {
           artist: string | null
@@ -140,6 +176,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      listen_later: {
+        Row: {
+          added_at: string | null
+          album_image: string | null
+          album_name: string
+          artist_name: string
+          id: string
+          spotify_album_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          album_image?: string | null
+          album_name: string
+          artist_name: string
+          id?: string
+          spotify_album_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          album_image?: string | null
+          album_name?: string
+          artist_name?: string
+          id?: string
+          spotify_album_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
