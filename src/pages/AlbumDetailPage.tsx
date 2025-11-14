@@ -27,6 +27,10 @@ interface AlbumData {
   duration?: number;
   label?: string;
   spotifyUrl?: string;
+  popularity?: number;
+  genres?: string[];
+  copyrights?: Array<{ text: string; type: string }>;
+  availableMarkets?: number;
 }
 
 interface TrackData {
@@ -867,9 +871,48 @@ export default function AlbumDetailPage() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium mb-1">Languages</p>
-                  <p className="text-sm text-muted-foreground">Spanish</p>
+                  <p className="text-sm font-medium mb-1">Label</p>
+                  <p className="text-sm text-muted-foreground">{album.label || 'Unknown'}</p>
                 </div>
+
+                <div>
+                  <p className="text-sm font-medium mb-1">Type</p>
+                  <p className="text-sm text-muted-foreground capitalize">{album.type?.replace('_', ' ') || 'Album'}</p>
+                </div>
+
+                {album.genres && album.genres.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Genres</p>
+                    <p className="text-sm text-muted-foreground capitalize">{album.genres.join(', ')}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm font-medium mb-1">Tracks</p>
+                  <p className="text-sm text-muted-foreground">{album.totalTracks} tracks</p>
+                </div>
+
+                {album.popularity !== undefined && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Popularity</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-primary rounded-full h-2 transition-all" 
+                          style={{ width: `${album.popularity}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground">{album.popularity}/100</span>
+                    </div>
+                  </div>
+                )}
+
+                {album.availableMarkets !== undefined && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Availability</p>
+                    <p className="text-sm text-muted-foreground">Available in {album.availableMarkets} markets</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

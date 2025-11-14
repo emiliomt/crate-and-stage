@@ -86,6 +86,10 @@ serve(async (req) => {
       label: albumData.label,
       type: albumData.album_type,
       spotifyUrl: albumData.external_urls.spotify,
+      popularity: albumData.popularity,
+      genres: albumData.genres || [],
+      copyrights: albumData.copyrights || [],
+      availableMarkets: albumData.available_markets?.length || 0,
       tracks: albumData.tracks.items.map((track: any) => ({
         id: track.id,
         name: track.name,
