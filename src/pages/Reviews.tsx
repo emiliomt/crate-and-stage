@@ -34,12 +34,6 @@ const Reviews = () => {
                   Boards
                 </button>
                 <button
-                  onClick={() => navigate("/discover")}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Discover
-                </button>
-                <button
                   onClick={() => setActiveTab("reviews")}
                   className="text-foreground font-medium border-b-2 border-primary pb-1"
                 >

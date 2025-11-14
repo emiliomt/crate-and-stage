@@ -16,7 +16,6 @@ import Concerts from "./pages/Concerts";
 import Lists from "./pages/Lists";
 import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
-import Discover from "./pages/Discover";
 import Reviews from "./pages/Reviews";
 import Albums from "./pages/Albums";
 import NotFound from "./pages/NotFound";
@@ -43,7 +42,6 @@ const App = () => (
           <Route path="/lists" element={<Lists />} />
           <Route path="/boards" element={<Boards />} />
           <Route path="/boards/:boardId" element={<BoardDetail />} />
-          <Route path="/discover" element={<Discover />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/albums" element={<Albums />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

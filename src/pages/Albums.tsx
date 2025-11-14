@@ -41,12 +41,6 @@ const Albums = () => {
                   Boards
                 </button>
                 <button
-                  onClick={() => navigate("/discover")}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Discover
-                </button>
-                <button
                   onClick={() => navigate("/reviews")}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
