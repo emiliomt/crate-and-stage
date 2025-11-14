@@ -138,6 +138,10 @@ const Feed = () => {
               <h1 className="text-2xl font-bold text-foreground">Vinyl Social</h1>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/music-search")}>
+                <Music className="h-4 w-4 mr-2" />
+                Music DB
+              </Button>
               <Button variant="outline" size="sm" onClick={() => navigate("/create-board")}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Board
