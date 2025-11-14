@@ -8,6 +8,9 @@ import Auth from "./pages/Auth";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
 import CreateBoard from "./pages/CreateBoard";
+import MusicSearch from "./pages/MusicSearch";
+import ArtistDetail from "./pages/ArtistDetail";
+import AlbumDetail from "./pages/AlbumDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +27,9 @@ const App = () => (
           <Route path="/feed" element={<Feed />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/create-board" element={<CreateBoard />} />
+          <Route path="/music-search" element={<MusicSearch />} />
+          <Route path="/artist/:artistId" element={<ArtistDetail />} />
+          <Route path="/album/:albumId" element={<AlbumDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
