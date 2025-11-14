@@ -18,10 +18,14 @@ interface AlbumData {
   id: string;
   name: string;
   artist: string;
+  artists: any[];
   image: string;
   releaseDate: string;
   type: string;
   totalTracks?: number;
+  duration?: number;
+  label?: string;
+  spotifyUrl?: string;
 }
 
 interface TrackData {
@@ -29,6 +33,8 @@ interface TrackData {
   name: string;
   duration_ms: number;
   track_number: number;
+  artists: string[];
+  explicit?: boolean;
 }
 
 interface RatingData {
@@ -69,33 +75,24 @@ export default function AlbumDetailPage() {
   const fetchAlbumData = async () => {
     setLoading(true);
     try {
-      // For now, we'll use mock data since we need to integrate with Spotify API
-      // In production, this would fetch from Spotify
-      const mockAlbum: AlbumData = {
-        id: albumId!,
-        name: "Lux",
-        artist: "ROSALÍA",
-        image: "https://i.scdn.co/image/ab67616d00001e025076e4160d018e378f488c33",
-        releaseDate: "2025-11-07",
-        type: "Album",
-        totalTracks: 15,
-      };
+      const { data, error } = await supabase.functions.invoke('spotify-album-details', {
+        body: { albumId },
+      });
 
-      const mockTracks: TrackData[] = [
-        { id: "1", name: "Sexo, violencia y llantas", duration_ms: 140000, track_number: 1 },
-        { id: "2", name: "Reliquia", duration_ms: 230000, track_number: 2 },
-        { id: "3", name: "Divinize", duration_ms: 243000, track_number: 3 },
-        { id: "4", name: "Porcelana", duration_ms: 248000, track_number: 4 },
-        { id: "5", name: "Mío Cristo", duration_ms: 269000, track_number: 5 },
-        { id: "6", name: "Berghain", duration_ms: 178000, track_number: 6 },
-        { id: "7", name: "La perla", duration_ms: 195000, track_number: 7 },
-      ];
+      if (error) throw error;
 
-      setAlbum(mockAlbum);
-      setTracks(mockTracks);
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setAlbum(data);
+      setTracks(data.tracks || []);
 
       // Fetch concerts for the artist
-      fetchConcerts(mockAlbum.artist);
+      if (data.artist) {
+        fetchConcerts(data.artist);
+      }
     } catch (error) {
       console.error('Error fetching album:', error);
       toast.error("Failed to load album");
@@ -404,7 +401,7 @@ export default function AlbumDetailPage() {
                               </span>
                               <div className="flex-1">
                                 <h3 className="font-semibold">{track.name}</h3>
-                                <p className="text-sm text-muted-foreground">{album.artist}</p>
+                                <p className="text-sm text-muted-foreground">{track.artists.join(", ")}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
@@ -545,7 +542,7 @@ export default function AlbumDetailPage() {
                   Send on Musicboard
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
-                  <a href={`https://open.spotify.com/album/${album.id}`} target="_blank" rel="noopener noreferrer">
+                  <a href={album.spotifyUrl || `https://open.spotify.com/album/${album.id}`} target="_blank" rel="noopener noreferrer">
                     <Music className="h-4 w-4 mr-2" />
                     Listen on Streaming
                   </a>
