@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Music, LogOut, User, Plus, Disc3, Search, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { AlbumRatingDialog } from "@/components/AlbumRatingDialog";
 
 interface Album {
   id: string;
@@ -41,8 +40,6 @@ const Feed = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Album[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
-  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -119,8 +116,7 @@ const Feed = () => {
   };
 
   const handleAlbumClick = (album: Album) => {
-    setSelectedAlbum(album);
-    setRatingDialogOpen(true);
+    navigate(`/album-detail/${album.id}`);
   };
 
   const handleSignOut = async () => {
@@ -321,12 +317,6 @@ const Feed = () => {
           </div>
         </div>
       </main>
-
-      <AlbumRatingDialog
-        album={selectedAlbum}
-        open={ratingDialogOpen}
-        onOpenChange={setRatingDialogOpen}
-      />
     </div>
   );
 };
