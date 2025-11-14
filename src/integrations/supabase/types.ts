@@ -276,6 +276,42 @@ export type Database = {
         }
         Relationships: []
       }
+      track_ratings: {
+        Row: {
+          artist_name: string
+          created_at: string | null
+          id: string
+          rating: number
+          spotify_album_id: string
+          spotify_track_id: string
+          track_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          artist_name: string
+          created_at?: string | null
+          id?: string
+          rating: number
+          spotify_album_id: string
+          spotify_track_id: string
+          track_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          artist_name?: string
+          created_at?: string | null
+          id?: string
+          rating?: number
+          spotify_album_id?: string
+          spotify_track_id?: string
+          track_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_media: {
         Row: {
           added_at: string | null

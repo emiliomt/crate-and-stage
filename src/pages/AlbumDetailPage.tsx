@@ -37,6 +37,13 @@ interface TrackData {
   explicit?: boolean;
 }
 
+interface TrackRatingData {
+  spotify_track_id: string;
+  user_rating: number;
+  avg_rating: number;
+  total_ratings: number;
+}
+
 interface RatingData {
   user_id: string;
   rating: number;
@@ -63,12 +70,16 @@ export default function AlbumDetailPage() {
   const [selectedLyrics, setSelectedLyrics] = useState<{ track: string; url: string } | null>(null);
   const [concerts, setConcerts] = useState<any[]>([]);
   const [concertsLoading, setConcertsLoading] = useState(false);
+  const [trackRatings, setTrackRatings] = useState<Map<string, TrackRatingData>>(new Map());
+  const [trackRatingDialog, setTrackRatingDialog] = useState<{ open: boolean; track: TrackData | null }>({ open: false, track: null });
+  const [trackHoverRating, setTrackHoverRating] = useState<number>(0);
 
   useEffect(() => {
     if (albumId) {
       fetchAlbumData();
       fetchRatings();
       fetchFriendsRatings();
+      fetchTrackRatings();
     }
   }, [albumId]);
 
@@ -186,6 +197,83 @@ export default function AlbumDetailPage() {
       }
     } catch (error) {
       console.error("Error fetching friends ratings:", error);
+    }
+  };
+
+  const fetchTrackRatings = async () => {
+    if (!albumId) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Fetch all track ratings for this album
+      const { data: allRatings } = await supabase
+        .from("track_ratings")
+        .select("spotify_track_id, rating, user_id")
+        .eq("spotify_album_id", albumId);
+
+      if (allRatings) {
+        const ratingsMap = new Map<string, TrackRatingData>();
+        
+        // Calculate average ratings and user ratings per track
+        allRatings.forEach((rating: any) => {
+          const trackId = rating.spotify_track_id;
+          const existing = ratingsMap.get(trackId);
+          
+          if (existing) {
+            existing.total_ratings += 1;
+            existing.avg_rating = ((existing.avg_rating * (existing.total_ratings - 1)) + rating.rating) / existing.total_ratings;
+            if (user && rating.user_id === user.id) {
+              existing.user_rating = rating.rating;
+            }
+          } else {
+            ratingsMap.set(trackId, {
+              spotify_track_id: trackId,
+              user_rating: (user && rating.user_id === user.id) ? rating.rating : 0,
+              avg_rating: rating.rating,
+              total_ratings: 1,
+            });
+          }
+        });
+        
+        setTrackRatings(ratingsMap);
+      }
+    } catch (error) {
+      console.error("Error fetching track ratings:", error);
+    }
+  };
+
+  const handleTrackRating = async (track: TrackData, rating: number) => {
+    if (!album) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to rate");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("track_ratings")
+        .upsert({
+          user_id: user.id,
+          spotify_track_id: track.id,
+          spotify_album_id: albumId!,
+          track_name: track.name,
+          artist_name: track.artists.join(", "),
+          rating: rating,
+        });
+
+      if (error) throw error;
+
+      await fetchTrackRatings();
+      setTrackRatingDialog({ open: false, track: null });
+      setTrackHoverRating(0);
+
+      toast.success(`Rated ${track.name} ${rating} stars`);
+    } catch (error) {
+      console.error("Error saving track rating:", error);
+      toast.error("Failed to save rating");
     }
   };
 
@@ -416,10 +504,28 @@ export default function AlbumDetailPage() {
                               <span className="text-sm text-muted-foreground">
                                 {formatDuration(track.duration_ms)}
                               </span>
-                              <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                                <span className="text-sm">4.3</span>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1"
+                                onClick={() => setTrackRatingDialog({ open: true, track })}
+                              >
+                                <Star 
+                                  className={`h-4 w-4 ${
+                                    trackRatings.get(track.id)?.user_rating 
+                                      ? "fill-yellow-500 text-yellow-500" 
+                                      : "text-muted"
+                                  }`}
+                                />
+                                <span className="text-sm">
+                                  {trackRatings.get(track.id)?.avg_rating?.toFixed(1) || "—"}
+                                </span>
+                                {trackRatings.get(track.id)?.total_ratings > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({trackRatings.get(track.id)?.total_ratings})
+                                  </span>
+                                )}
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -644,6 +750,43 @@ export default function AlbumDetailPage() {
                 />
               </button>
             ))}
+          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            Click a star to rate (0.5 to 5 stars)
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Track Rating Dialog */}
+      <Dialog open={trackRatingDialog.open} onOpenChange={(open) => {
+        setTrackRatingDialog({ open, track: trackRatingDialog.track });
+        if (!open) setTrackHoverRating(0);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rate {trackRatingDialog.track?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center gap-2 py-8">
+            {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => {
+              const currentRating = trackRatings.get(trackRatingDialog.track?.id || "")?.user_rating || 0;
+              return (
+                <button
+                  key={rating}
+                  onClick={() => trackRatingDialog.track && handleTrackRating(trackRatingDialog.track, rating)}
+                  onMouseEnter={() => setTrackHoverRating(rating)}
+                  onMouseLeave={() => setTrackHoverRating(0)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star
+                    className={`w-8 h-8 ${
+                      rating <= (trackHoverRating || currentRating)
+                        ? "fill-yellow-500 text-yellow-500"
+                        : "fill-muted text-muted"
+                    }`}
+                  />
+                </button>
+              );
+            })}
           </div>
           <p className="text-center text-sm text-muted-foreground">
             Click a star to rate (0.5 to 5 stars)
