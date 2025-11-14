@@ -155,6 +155,42 @@ export type Database = {
           },
         ]
       }
+      board_likes: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_likes_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boards: {
         Row: {
           board_type: Database["public"]["Enums"]["board_type"]
@@ -162,9 +198,11 @@ export type Database = {
           description: string | null
           id: string
           is_public: boolean | null
+          likes_count: number | null
           title: string
           updated_at: string | null
           user_id: string
+          views_count: number | null
         }
         Insert: {
           board_type: Database["public"]["Enums"]["board_type"]
@@ -172,9 +210,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_public?: boolean | null
+          likes_count?: number | null
           title: string
           updated_at?: string | null
           user_id: string
+          views_count?: number | null
         }
         Update: {
           board_type?: Database["public"]["Enums"]["board_type"]
@@ -182,9 +222,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_public?: boolean | null
+          likes_count?: number | null
           title?: string
           updated_at?: string | null
           user_id?: string
+          views_count?: number | null
         }
         Relationships: [
           {
