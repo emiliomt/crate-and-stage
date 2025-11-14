@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Share2, Plus, Save, Trash2, GripVertical } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Save, Trash2, GripVertical, Music, Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface Album {
@@ -30,6 +31,7 @@ interface MusicList {
 }
 
 export default function Lists() {
+  const navigate = useNavigate();
   const [view, setView] = useState<"browse" | "create">("browse");
   const [sortBy, setSortBy] = useState("popular");
   const [lists, setLists] = useState<MusicList[]>([
@@ -302,6 +304,58 @@ export default function Lists() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+                <Music className="h-8 w-8 text-primary" />
+                <span className="text-2xl font-bold">Musicboard</span>
+              </div>
+              
+              <nav className="hidden md:flex items-center gap-6">
+                <button
+                  className="text-foreground font-medium border-b-2 border-primary pb-1"
+                >
+                  Lists
+                </button>
+                <button
+                  onClick={() => navigate("/boards")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Boards
+                </button>
+                <button
+                  onClick={() => navigate("/reviews")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Reviews
+                </button>
+                <button
+                  onClick={() => navigate("/albums")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Albums
+                </button>
+              </nav>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="relative hidden md:block">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="search"
+                  placeholder="Search music..."
+                  className="pl-10 w-64"
+                />
+              </div>
+              <Button onClick={() => navigate("/auth")}>Sign In</Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>

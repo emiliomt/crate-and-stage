@@ -15,6 +15,8 @@ import AlbumDetailPage from "./pages/AlbumDetailPage";
 import Concerts from "./pages/Concerts";
 import Lists from "./pages/Lists";
 import Boards from "./pages/Boards";
+import Reviews from "./pages/Reviews";
+import Albums from "./pages/Albums";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
           <Route path="/concerts" element={<Concerts />} />
           <Route path="/lists" element={<Lists />} />
           <Route path="/boards" element={<Boards />} />
+          <Route path="/reviews" element={<Reviews />} />
+          <Route path="/albums" element={<Albums />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
