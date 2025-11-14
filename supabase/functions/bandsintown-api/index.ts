@@ -37,14 +37,37 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       if (response.status === 404) {
         return new Response(
-          JSON.stringify({ error: 'Artist not found' }),
+          JSON.stringify({ error: 'Artist not found', events: [] }),
           { 
-            status: 404,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
       }
-      throw new Error(`Bandsintown API error: ${response.statusText}`);
+      if (response.status === 403) {
+        console.error('Bandsintown API forbidden - API may require registration');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Bandsintown API is currently unavailable. Please try again later.',
+            events: []
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      console.error(`Bandsintown API error: ${response.status} ${response.statusText}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Unable to fetch concert data',
+          events: []
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
@@ -57,9 +80,12 @@ Deno.serve(async (req) => {
     console.error('Error in bandsintown-api:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: 'Concert data temporarily unavailable',
+        events: []
+      }),
       { 
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

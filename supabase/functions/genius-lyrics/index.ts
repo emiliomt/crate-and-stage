@@ -4,8 +4,9 @@ const corsHeaders = {
 };
 
 const GENIUS_BASE_URL = 'https://api.genius.com';
-// Note: This uses a demo token - users should add their own Genius API token for production
-const GENIUS_ACCESS_TOKEN = Deno.env.get('GENIUS_API_TOKEN') || 'demo';
+// Get Genius API token from environment variables
+// Users need to add GENIUS_API_TOKEN secret with their token from https://genius.com/api-clients
+const GENIUS_ACCESS_TOKEN = Deno.env.get('GENIUS_API_TOKEN');
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,6 +14,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Check if API token is configured
+    if (!GENIUS_ACCESS_TOKEN) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Lyrics service not configured. Please add GENIUS_API_TOKEN to use this feature.',
+          response: { hits: [] }
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const { action, query, songId } = await req.json();
 
     let url = '';
@@ -39,14 +54,37 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       if (response.status === 404) {
         return new Response(
-          JSON.stringify({ error: 'Song not found', response: { song: null } }),
+          JSON.stringify({ error: 'Song not found', response: { hits: [] } }),
           { 
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
       }
-      throw new Error(`Genius API error: ${response.statusText}`);
+      if (response.status === 401) {
+        console.error('Genius API unauthorized - Invalid or missing API token');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Lyrics service requires valid API token. Please configure GENIUS_API_TOKEN.',
+            response: { hits: [] }
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      console.error(`Genius API error: ${response.status} ${response.statusText}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Unable to fetch lyrics',
+          response: { hits: [] }
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
@@ -59,9 +97,12 @@ Deno.serve(async (req) => {
     console.error('Error in genius-lyrics:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: 'Lyrics service temporarily unavailable',
+        response: { hits: [] }
+      }),
       { 
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

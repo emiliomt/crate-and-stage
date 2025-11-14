@@ -111,11 +111,20 @@ export default function AlbumDetailPage() {
         body: { action: 'getEvents', artistName, dateRange: 'upcoming' }
       });
 
+      if (data?.error) {
+        console.log('Concerts unavailable:', data.error);
+        setConcerts([]);
+        return;
+      }
+
       if (!error && Array.isArray(data)) {
         setConcerts(data.slice(0, 5)); // Show first 5 concerts
+      } else if (!error && data?.events && Array.isArray(data.events)) {
+        setConcerts(data.events.slice(0, 5));
       }
     } catch (error) {
       console.error('Error fetching concerts:', error);
+      setConcerts([]);
     } finally {
       setConcertsLoading(false);
     }
@@ -255,6 +264,11 @@ export default function AlbumDetailPage() {
         body: { action: 'search', query: `${trackName} ${album?.artist}` }
       });
 
+      if (data?.error) {
+        toast.info(data.error);
+        return;
+      }
+
       if (data?.response?.hits && data.response.hits.length > 0) {
         const song = data.response.hits[0].result;
         setSelectedLyrics({
@@ -262,11 +276,11 @@ export default function AlbumDetailPage() {
           url: song.url
         });
       } else {
-        toast.info("Lyrics not found");
+        toast.info("Lyrics not found for this track");
       }
     } catch (error) {
       console.error("Error fetching lyrics:", error);
-      toast.error("Failed to load lyrics");
+      toast.error("Lyrics service temporarily unavailable");
     }
   };
 
