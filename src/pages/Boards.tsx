@@ -1,93 +1,50 @@
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Users, List, Music, Search } from "lucide-react";
-
-interface Board {
-  id: number;
-  name: string;
-  creator: string;
-  genre: string;
-  avatar: string;
-  members: number;
-  lists: number;
-}
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Music, Heart } from "lucide-react";
 
 export default function Boards() {
   const navigate = useNavigate();
-  const boards: Board[] = [
-    {
-      id: 1,
-      name: "XXXS",
-      creator: "Emilio Montemayor",
-      genre: "mixed",
-      avatar: "EM",
-      members: 1245,
-      lists: 89,
-    },
-    {
-      id: 2,
-      name: "Indie Discoveries",
-      creator: "Sarah Chen",
-      genre: "indie",
-      avatar: "SC",
-      members: 3456,
-      lists: 234,
-    },
-    {
-      id: 3,
-      name: "Jazz Classics & Deep Cuts",
-      creator: "Marcus Williams",
-      genre: "jazz",
-      avatar: "MW",
-      members: 2134,
-      lists: 156,
-    },
-    {
-      id: 4,
-      name: "Electronic Evolution",
-      creator: "Alex Rivera",
-      genre: "electronic",
-      avatar: "AR",
-      members: 4567,
-      lists: 312,
-    },
-    {
-      id: 5,
-      name: "Hip Hop Golden Era",
-      creator: "Jordan Lee",
-      genre: "hip-hop",
-      avatar: "JL",
-      members: 5678,
-      lists: 423,
-    },
-    {
-      id: 6,
-      name: "Rock Through the Decades",
-      creator: "Emma Thompson",
-      genre: "rock",
-      avatar: "ET",
-      members: 3890,
-      lists: 267,
-    },
-  ];
 
-  const getGenreColor = (genre: string) => {
+  const { data: boards, isLoading } = useQuery({
+    queryKey: ['community-boards'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('boards')
+        .select(`
+          *,
+          profiles!boards_user_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const getBoardTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      mixed: "bg-purple-500/20 text-purple-700 dark:text-purple-300",
-      indie: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
-      jazz: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-      electronic: "bg-pink-500/20 text-pink-700 dark:text-pink-300",
-      "hip-hop": "bg-green-500/20 text-green-700 dark:text-green-300",
-      rock: "bg-red-500/20 text-red-700 dark:text-red-300",
+      album: "bg-purple-500/20 text-purple-700 dark:text-purple-300",
+      artist: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
+      vinyl: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+      concert: "bg-pink-500/20 text-pink-700 dark:text-pink-300",
+      mixed: "bg-green-500/20 text-green-700 dark:text-green-300",
     };
-    return colors[genre] || "bg-gray-500/20 text-gray-700 dark:text-gray-300";
+    return colors[type] || "bg-gray-500/20 text-gray-700 dark:text-gray-300";
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 py-4">
@@ -126,69 +83,113 @@ export default function Boards() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  type="search"
-                  placeholder="Search music..."
-                  className="pl-10 w-64"
-                />
-              </div>
-              <Button onClick={() => navigate("/auth")}>Sign In</Button>
+              <button
+                onClick={() => navigate("/feed")}
+                className="hidden md:block text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Feed
+              </button>
+              <button
+                onClick={() => navigate("/profile")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Profile
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-5xl font-bold">Community Boards</h1>
-          <p className="text-xl text-muted-foreground">
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Community Boards</h1>
+          <p className="text-muted-foreground">
             Discover music through boards curated by the community
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {boards.map((board) => (
-            <Card
-              key={board.id}
-              className="bg-white dark:bg-card border-gray-200 dark:border-border hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group"
-            >
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-lg font-bold group-hover:bg-primary/30 transition-colors">
-                      {board.avatar}
+        {/* Boards list */}
+        <div className="space-y-4">
+          {isLoading ? (
+            // Loading skeletons
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-6 w-64" />
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-16 w-full" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
-                        {board.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        by {board.creator}
-                      </p>
-                    </div>
+                    <Skeleton className="h-6 w-16" />
                   </div>
-                  <Badge variant="secondary" className={getGenreColor(board.genre)}>
-                    {board.genre}
-                  </Badge>
-                </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : boards && boards.length > 0 ? (
+            boards.map((board) => (
+              <Card 
+                key={board.id}
+                className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => navigate(`/boards/${board.id}`)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={board.profiles?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {(board.profiles?.display_name || board.profiles?.username || 'U')[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-                <div className="flex items-center gap-6 pt-4 border-t border-gray-200 dark:border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{board.members.toLocaleString()} members</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold mb-1 truncate">
+                            {board.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            by {board.profiles?.display_name || board.profiles?.username}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant="secondary"
+                          className={getBoardTypeColor(board.board_type)}
+                        >
+                          {board.board_type}
+                        </Badge>
+                      </div>
+
+                      {board.description && (
+                        <p className="text-muted-foreground line-clamp-2 mb-3">
+                          {board.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                          <span>{board.likes_count || 0}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <List className="h-4 w-4" />
-                    <span>{board.lists} lists</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-16">
+              <Music className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No boards yet</h3>
+              <p className="text-muted-foreground">
+                Be the first to create a board!
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
