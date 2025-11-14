@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Music, LogOut, User, Plus, Disc3 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Music, LogOut, User, Plus, Disc3, Search } from "lucide-react";
 import { toast } from "sonner";
+import { AlbumRatingDialog } from "@/components/AlbumRatingDialog";
 
 interface Album {
   id: string;
@@ -36,6 +38,11 @@ const Feed = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [albumsLoading, setAlbumsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Album[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -90,6 +97,32 @@ const Feed = () => {
     }
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('spotify-search', {
+        body: { query: searchQuery, type: 'album' }
+      });
+
+      if (error) throw error;
+      setSearchResults(data?.albums || []);
+    } catch (error: any) {
+      toast.error("Search failed. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAlbumClick = (album: Album) => {
+    setSelectedAlbum(album);
+    setRatingDialogOpen(true);
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -98,21 +131,40 @@ const Feed = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-10 shadow-soft">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Disc3 className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Vinyl Social</h1>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Disc3 className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground">Vinyl Social</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/create-board")}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Board
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
+                <User className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/create-board")}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Board
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
-              <User className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4" />
+          
+          <div className="max-w-2xl mx-auto flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search for albums..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="pl-10"
+              />
+            </div>
+            <Button onClick={handleSearch} disabled={isSearching}>
+              Search
             </Button>
           </div>
         </div>
@@ -120,6 +172,31 @@ const Feed = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-12">
+          {searchResults.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Search Results</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {searchResults.map((album) => (
+                  <div
+                    key={album.id}
+                    className="group cursor-pointer"
+                    onClick={() => handleAlbumClick(album)}
+                  >
+                    <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-muted hover:shadow-lg transition-all">
+                      <img
+                        src={album.image}
+                        alt={album.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <h3 className="font-semibold text-sm text-foreground truncate">{album.name}</h3>
+                    <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -144,7 +221,7 @@ const Feed = () => {
                   <div
                     key={album.id}
                     className="group cursor-pointer"
-                    onClick={() => toast.info(`${album.name} by ${album.artist}`)}
+                    onClick={() => handleAlbumClick(album)}
                   >
                     <div className="aspect-square rounded-lg overflow-hidden mb-2 shadow-medium transition-transform group-hover:scale-105">
                       <img
@@ -236,6 +313,12 @@ const Feed = () => {
           </div>
         </div>
       </main>
+
+      <AlbumRatingDialog
+        album={selectedAlbum}
+        open={ratingDialogOpen}
+        onOpenChange={setRatingDialogOpen}
+      />
     </div>
   );
 };
