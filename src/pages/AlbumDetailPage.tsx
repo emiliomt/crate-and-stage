@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, Star, Music, Calendar, Clock, Globe, 
   FileText, ListMusic, Share2, Copy, Heart, Ticket 
@@ -54,6 +55,20 @@ interface RatingData {
   };
 }
 
+interface ReviewData {
+  id: string;
+  user_id: string;
+  rating: number;
+  review_text: string;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    username: string;
+    display_name: string;
+    avatar_url: string;
+  };
+}
+
 export default function AlbumDetailPage() {
   const { albumId } = useParams();
   const navigate = useNavigate();
@@ -73,6 +88,12 @@ export default function AlbumDetailPage() {
   const [trackRatings, setTrackRatings] = useState<Map<string, TrackRatingData>>(new Map());
   const [trackRatingDialog, setTrackRatingDialog] = useState<{ open: boolean; track: TrackData | null }>({ open: false, track: null });
   const [trackHoverRating, setTrackHoverRating] = useState<number>(0);
+  const [reviews, setReviews] = useState<ReviewData[]>([]);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewRating, setReviewRating] = useState<number>(0);
+  const [reviewHoverRating, setReviewHoverRating] = useState<number>(0);
+  const [userReview, setUserReview] = useState<ReviewData | null>(null);
 
   useEffect(() => {
     if (albumId) {
@@ -80,6 +101,7 @@ export default function AlbumDetailPage() {
       fetchRatings();
       fetchFriendsRatings();
       fetchTrackRatings();
+      fetchReviews();
     }
   }, [albumId]);
 
@@ -274,6 +296,95 @@ export default function AlbumDetailPage() {
     } catch (error) {
       console.error("Error saving track rating:", error);
       toast.error("Failed to save rating");
+    }
+  };
+
+  const fetchReviews = async () => {
+    if (!albumId) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Fetch all reviews for this album with user profiles
+      const { data: allReviews, error } = await supabase
+        .from("album_reviews")
+        .select("*, profiles(username, display_name, avatar_url)")
+        .eq("spotify_album_id", albumId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (allReviews) {
+        setReviews(allReviews as any);
+        
+        // Find user's review if exists
+        const userReviewData = allReviews.find((r: any) => r.user_id === user?.id);
+        if (userReviewData) {
+          setUserReview(userReviewData as any);
+          setReviewText(userReviewData.review_text);
+          setReviewRating(userReviewData.rating);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+
+  const handleOpenReviewDialog = () => {
+    if (userReview) {
+      setReviewText(userReview.review_text);
+      setReviewRating(userReview.rating);
+    } else {
+      setReviewText("");
+      setReviewRating(userRating || 0);
+    }
+    setReviewDialogOpen(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!album) return;
+
+    if (!reviewText || reviewText.length < 10) {
+      toast.error("Review must be at least 10 characters long");
+      return;
+    }
+
+    if (!reviewRating) {
+      toast.error("Please select a rating");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to write a review");
+        return;
+      }
+
+      const reviewData = {
+        user_id: user.id,
+        spotify_album_id: albumId!,
+        album_name: album.name,
+        artist_name: album.artist,
+        album_image: album.image,
+        rating: reviewRating,
+        review_text: reviewText,
+      };
+
+      const { error } = await supabase
+        .from("album_reviews")
+        .upsert(reviewData);
+
+      if (error) throw error;
+
+      await fetchReviews();
+      setReviewDialogOpen(false);
+      setReviewHoverRating(0);
+
+      toast.success(userReview ? "Review updated successfully" : "Review published successfully");
+    } catch (error) {
+      console.error("Error saving review:", error);
+      toast.error("Failed to save review");
     }
   };
 
@@ -613,8 +724,61 @@ export default function AlbumDetailPage() {
                 )}
               </TabsContent>
 
-              <TabsContent value="reviews">
-                <p className="text-muted-foreground">Reviews coming soon...</p>
+              <TabsContent value="reviews" className="space-y-6">
+                {reviews.length > 0 ? (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <Card key={review.id}>
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-4">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={review.profiles?.avatar_url || undefined} />
+                              <AvatarFallback>
+                                {review.profiles?.display_name?.[0] || review.profiles?.username?.[0] || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold">
+                                    {review.profiles?.display_name || review.profiles?.username || "Anonymous"}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <div className="flex gap-0.5">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          className={`h-4 w-4 ${
+                                            i < Math.floor(review.rating)
+                                              ? "fill-yellow-500 text-yellow-500"
+                                              : "fill-muted text-muted"
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span>•</span>
+                                    <span>{new Date(review.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                {review.review_text}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">No reviews yet</p>
+                    <Button onClick={handleOpenReviewDialog}>
+                      Be the first to write a review
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="lists">
@@ -631,9 +795,9 @@ export default function AlbumDetailPage() {
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6 space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={handleOpenReviewDialog}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Write review
+                  {userReview ? "Edit review" : "Write review"}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={handleAddToListenLater}>
                   <Heart className="h-4 w-4 mr-2" />
@@ -791,6 +955,67 @@ export default function AlbumDetailPage() {
           <p className="text-center text-sm text-muted-foreground">
             Click a star to rate (0.5 to 5 stars)
           </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={(open) => {
+        setReviewDialogOpen(open);
+        if (!open) setReviewHoverRating(0);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{userReview ? "Edit Your Review" : "Write a Review"} for {album?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Your Rating</label>
+              <div className="flex justify-center gap-2">
+                {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    onClick={() => setReviewRating(rating)}
+                    onMouseEnter={() => setReviewHoverRating(rating)}
+                    onMouseLeave={() => setReviewHoverRating(0)}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`w-8 h-8 ${
+                        rating <= (reviewHoverRating || reviewRating)
+                          ? "fill-yellow-500 text-yellow-500"
+                          : "fill-muted text-muted"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Your Review</label>
+              <Textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Share your thoughts about this album... (minimum 10 characters)"
+                className="min-h-[200px]"
+                maxLength={5000}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {reviewText.length}/5000 characters
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitReview}
+              disabled={!reviewText || reviewText.length < 10 || !reviewRating}
+            >
+              {userReview ? "Update Review" : "Publish Review"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

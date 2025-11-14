@@ -50,6 +50,45 @@ export type Database = {
         }
         Relationships: []
       }
+      album_reviews: {
+        Row: {
+          album_image: string | null
+          album_name: string
+          artist_name: string
+          created_at: string | null
+          id: string
+          rating: number
+          review_text: string
+          spotify_album_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          album_image?: string | null
+          album_name: string
+          artist_name: string
+          created_at?: string | null
+          id?: string
+          rating: number
+          review_text: string
+          spotify_album_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          album_image?: string | null
+          album_name?: string
+          artist_name?: string
+          created_at?: string | null
+          id?: string
+          rating?: number
+          review_text?: string
+          spotify_album_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       board_items: {
         Row: {
           artist: string | null
