@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Music, LogOut, User, Plus, Disc3, Search, Calendar } from "lucide-react";
+import { Music, LogOut, User, Plus, Disc3, Search, Calendar, Users } from "lucide-react";
 import { toast } from "sonner";
 interface Album {
   id: string;
@@ -131,6 +131,10 @@ const Feed = () => {
               <h1 className="text-2xl font-bold text-foreground">Eu-ter-pe</h1>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/following")}>
+                <Users className="h-4 w-4 mr-2" />
+                Following
+              </Button>
               <Button variant="outline" size="sm" onClick={() => navigate("/music-search")}>
                 <Music className="h-4 w-4 mr-2" />
                 Music DB
@@ -241,7 +245,13 @@ const Feed = () => {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <Avatar>
+                          <Avatar
+                            className="cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/user/${board.profiles.username}`);
+                            }}
+                          >
                             <AvatarImage src={board.profiles.avatar_url || undefined} />
                             <AvatarFallback>
                               {board.profiles.display_name?.[0] || board.profiles.username[0]}
@@ -249,7 +259,13 @@ const Feed = () => {
                           </Avatar>
                           <div>
                             <CardTitle className="text-lg">{board.title}</CardTitle>
-                            <CardDescription>
+                            <CardDescription
+                              className="cursor-pointer hover:underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/user/${board.profiles.username}`);
+                              }}
+                            >
                               by {board.profiles.display_name || board.profiles.username}
                             </CardDescription>
                           </div>
