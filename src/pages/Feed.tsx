@@ -520,8 +520,8 @@ const Feed = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold mb-1">World Top 50 Albums</h2>
-                <p className="text-sm text-muted-foreground">Most popular albums globally on Spotify</p>
+                <h2 className="text-2xl font-bold mb-1">New Album Releases</h2>
+                <p className="text-sm text-muted-foreground">Latest albums from Spotify</p>
               </div>
             </div>
             

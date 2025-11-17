@@ -43,11 +43,9 @@ serve(async (req) => {
 
     const { access_token } = await tokenResponse.json();
 
-    // Get Spotify's "Top 50 Global" playlist
-    const playlistId = '37i9dQZEVXbMDoHDwVN2tF'; // Global Top 50 playlist
-    
-    const playlistResponse = await fetch(
-      `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50`,
+    // Fetch new releases which includes popular albums
+    const newReleasesResponse = await fetch(
+      `https://api.spotify.com/v1/browse/new-releases?limit=50`,
       {
         headers: {
           'Authorization': `Bearer ${access_token}`,
@@ -55,68 +53,29 @@ serve(async (req) => {
       }
     );
 
-    if (!playlistResponse.ok) {
-      const error = await playlistResponse.text();
-      console.error('Spotify playlist error:', error);
+    if (!newReleasesResponse.ok) {
+      const error = await newReleasesResponse.text();
+      console.error('Spotify new releases error:', error);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch playlist' }),
+        JSON.stringify({ error: 'Failed to fetch new releases' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const playlistData = await playlistResponse.json();
+    const newReleasesData = await newReleasesResponse.json();
 
-    // Extract unique albums from the playlist tracks
-    const albumsMap = new Map();
-    
-    for (const item of playlistData.items) {
-      if (item.track && item.track.album) {
-        const album = item.track.album;
-        // Only include full albums, not singles
-        if ((album.album_type === 'album' || album.album_type === 'compilation') && !albumsMap.has(album.id)) {
-          albumsMap.set(album.id, {
-            id: album.id,
-            name: album.name,
-            artist: album.artists[0]?.name || 'Unknown',
-            image: album.images[0]?.url || '',
-            releaseDate: album.release_date,
-            type: 'album',
-          });
-        }
-      }
-    }
-
-    // Convert to array and limit to 20 albums
-    const albums = Array.from(albumsMap.values()).slice(0, 20);
-
-    // If we don't have enough albums from the playlist, fetch new releases
-    if (albums.length < 20) {
-      const newReleasesResponse = await fetch(
-        `https://api.spotify.com/v1/browse/new-releases?limit=50`,
-        {
-          headers: {
-            'Authorization': `Bearer ${access_token}`,
-          },
-        }
-      );
-
-      if (newReleasesResponse.ok) {
-        const newReleasesData = await newReleasesResponse.json();
-        
-        for (const album of newReleasesData.albums.items) {
-          if ((album.album_type === 'album' || album.album_type === 'compilation') && !albumsMap.has(album.id) && albums.length < 20) {
-            albums.push({
-              id: album.id,
-              name: album.name,
-              artist: album.artists[0]?.name || 'Unknown',
-              image: album.images[0]?.url || '',
-              releaseDate: album.release_date,
-              type: 'album',
-            });
-          }
-        }
-      }
-    }
+    // Filter and format albums
+    const albums = newReleasesData.albums.items
+      .filter((album: any) => album.album_type === 'album' || album.album_type === 'compilation')
+      .slice(0, 20)
+      .map((album: any) => ({
+        id: album.id,
+        name: album.name,
+        artist: album.artists[0]?.name || 'Unknown',
+        image: album.images[0]?.url || '',
+        releaseDate: album.release_date,
+        type: 'album',
+      }));
 
     return new Response(
       JSON.stringify({ albums }),
