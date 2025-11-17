@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, User } from "lucide-react";
 import { toast } from "sonner";
 import { FollowButton } from "@/components/FollowButton";
 
@@ -46,9 +46,16 @@ const UserProfile = () => {
         .from("profiles")
         .select("*")
         .eq("username", userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
+      
+      if (!profileData) {
+        toast.error("Profile not found");
+        setLoading(false);
+        return;
+      }
+      
       setProfile(profileData);
 
       // Fetch user's public boards
@@ -95,7 +102,34 @@ const UserProfile = () => {
     );
   }
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto text-center py-12">
+            <CardContent>
+              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Profile Not Found</h3>
+              <p className="text-muted-foreground mb-4">
+                This user doesn't exist or may have been removed.
+              </p>
+              <Button onClick={() => navigate("/feed")}>
+                Back to Feed
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
