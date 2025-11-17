@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -32,6 +32,36 @@ export function AddAlbumDialog({ boardId, onAlbumAdded }: AddAlbumDialogProps) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [albums, setAlbums] = useState<Album[]>([]);
+
+  useEffect(() => {
+    const searchAlbums = async () => {
+      if (!query.trim()) {
+        setAlbums([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('spotify-search', {
+          body: { query, type: 'album' },
+        });
+
+        if (error) throw error;
+        setAlbums(data?.albums || []);
+      } catch (error) {
+        console.error('Search error:', error);
+        toast.error("Failed to search for albums");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      searchAlbums();
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [query]);
 
   const handleSearch = async () => {
     if (!query.trim()) {
