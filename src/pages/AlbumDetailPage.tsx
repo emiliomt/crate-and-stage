@@ -104,6 +104,9 @@ export default function AlbumDetailPage() {
   const [vinylDialogOpen, setVinylDialogOpen] = useState(false);
   const [listsContainingAlbum, setListsContainingAlbum] = useState<any[]>([]);
   const [listsLoading, setListsLoading] = useState(false);
+  const [addToListDialogOpen, setAddToListDialogOpen] = useState(false);
+  const [userLists, setUserLists] = useState<any[]>([]);
+  const [loadingUserLists, setLoadingUserLists] = useState(false);
 
   useEffect(() => {
     if (albumId) {
@@ -535,6 +538,77 @@ export default function AlbumDetailPage() {
     }
   };
 
+  const fetchUserLists = async () => {
+    setLoadingUserLists(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('lists')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUserLists(data || []);
+    } catch (error) {
+      console.error('Error fetching user lists:', error);
+      toast.error('Failed to load your lists');
+    } finally {
+      setLoadingUserLists(false);
+    }
+  };
+
+  const handleOpenAddToListDialog = async () => {
+    await fetchUserLists();
+    setAddToListDialogOpen(true);
+  };
+
+  const handleAddToList = async (listId: string) => {
+    if (!album) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get the max position in the list
+      const { data: items } = await supabase
+        .from('list_items')
+        .select('position')
+        .eq('list_id', listId)
+        .order('position', { ascending: false })
+        .limit(1);
+
+      const nextPosition = items && items.length > 0 ? items[0].position + 1 : 0;
+
+      const { error } = await supabase
+        .from('list_items')
+        .insert({
+          list_id: listId,
+          title: album.name,
+          artist: album.artist,
+          genre: album.genres?.[0] || 'Unknown',
+          image_url: album.image,
+          spotify_id: album.id,
+          position: nextPosition,
+        });
+
+      if (error) throw error;
+
+      toast.success('Album added to list');
+      setAddToListDialogOpen(false);
+      fetchListsContainingAlbum();
+    } catch (error: any) {
+      if (error.code === '23505') {
+        toast.info('Album already in this list');
+      } else {
+        console.error('Error adding to list:', error);
+        toast.error('Failed to add album to list');
+      }
+    }
+  };
+
   const handleViewLyrics = async (trackName: string) => {
     try {
       const { data } = await supabase.functions.invoke('genius-lyrics', {
@@ -941,7 +1015,7 @@ export default function AlbumDetailPage() {
                   <Heart className="h-4 w-4 mr-2" />
                   Add to Listen Later
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={handleOpenAddToListDialog}>
                   <ListMusic className="h-4 w-4 mr-2" />
                   Add album to a list
                 </Button>
@@ -1293,6 +1367,54 @@ export default function AlbumDetailPage() {
               </p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add to List Dialog */}
+      <Dialog open={addToListDialogOpen} onOpenChange={setAddToListDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add to List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {loadingUserLists ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading your lists...</p>
+              </div>
+            ) : userLists.length === 0 ? (
+              <div className="text-center py-8">
+                <ListMusic className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground mb-4">You haven't created any lists yet</p>
+                <Button onClick={() => {
+                  setAddToListDialogOpen(false);
+                  navigate('/lists');
+                }}>
+                  Create Your First List
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {userLists.map((list) => (
+                  <Card
+                    key={list.id}
+                    className="p-4 hover:bg-accent cursor-pointer transition-colors"
+                    onClick={() => handleAddToList(list.id)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold truncate">{list.title}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{list.description}</p>
+                        <Badge variant="secondary" className="mt-2">
+                          {list.genre}
+                        </Badge>
+                      </div>
+                      <ListMusic className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
