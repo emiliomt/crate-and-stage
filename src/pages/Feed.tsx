@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Music, LogOut, User, Plus, Disc3, Search, Calendar, Users, ListMusic } from "lucide-react";
 import { toast } from "sonner";
 interface Album {
@@ -293,25 +294,59 @@ const Feed = () => {
               <h2 className="text-2xl font-bold mb-6">Song Results</h2>
               <div className="grid gap-3">
                 {songResults.map(song => (
-                  <Card 
-                    key={song.id} 
-                    className="hover:shadow-medium transition-shadow cursor-pointer"
-                    onClick={() => song.albumId && navigate(`/album-detail/${song.albumId}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        <img src={song.image} alt={song.name} className="w-16 h-16 rounded" />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold truncate">{song.name}</h3>
-                          <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+                  <HoverCard key={song.id} openDelay={200}>
+                    <HoverCardTrigger asChild>
+                      <Card 
+                        className="hover:shadow-medium transition-shadow cursor-pointer"
+                        onClick={() => song.albumId && navigate(`/album-detail/${song.albumId}`)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <img src={song.image} alt={song.name} className="w-16 h-16 rounded" />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold truncate">{song.name}</h3>
+                              <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+                              {song.album && (
+                                <p className="text-xs text-muted-foreground truncate">{song.album}</p>
+                              )}
+                            </div>
+                            <Music className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80" side="right" align="start">
+                      <div className="space-y-3">
+                        <div className="aspect-square rounded-lg overflow-hidden shadow-lg">
+                          <img 
+                            src={song.image} 
+                            alt={song.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <h4 className="font-bold text-lg leading-tight">{song.name}</h4>
+                            <p className="text-sm text-muted-foreground">{song.artist}</p>
+                          </div>
                           {song.album && (
-                            <p className="text-xs text-muted-foreground truncate">{song.album}</p>
+                            <div className="flex items-start gap-2 text-sm">
+                              <Disc3 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <span className="text-muted-foreground">{song.album}</span>
+                            </div>
+                          )}
+                          {song.releaseDate && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-muted-foreground">
+                                {new Date(song.releaseDate).getFullYear()}
+                              </span>
+                            </div>
                           )}
                         </div>
-                        <Music className="h-5 w-5 text-muted-foreground" />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </HoverCardContent>
+                  </HoverCard>
                 ))}
               </div>
             </div>
