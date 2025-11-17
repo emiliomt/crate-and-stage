@@ -514,6 +514,7 @@ export default function Lists() {
             <Card 
               key={list.id} 
               className="bg-card border-border hover:border-primary transition-all cursor-pointer group overflow-hidden"
+              onClick={() => navigate(`/lists/${list.id}`)}
             >
               <CardContent className="p-6 space-y-4">
                 <div className="grid grid-cols-4 gap-2 mb-4">
@@ -546,15 +547,33 @@ export default function Lists() {
                 </div>
 
                 <div className="flex items-center gap-4 pt-2 border-t border-border">
-                  <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button 
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.info("Like functionality coming soon!");
+                    }}
+                  >
                     <Heart className="h-4 w-4" />
                     {list.likes}
                   </button>
-                  <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button 
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.info("Comments coming soon!");
+                    }}
+                  >
                     <MessageCircle className="h-4 w-4" />
                     {list.comments}
                   </button>
-                  <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto">
+                  <button 
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.info("Share functionality coming soon!");
+                    }}
+                  >
                     <Share2 className="h-4 w-4" />
                   </button>
                 </div>
