@@ -274,6 +274,89 @@ export type Database = {
           },
         ]
       }
+      list_items: {
+        Row: {
+          artist: string
+          cover_emoji: string | null
+          created_at: string | null
+          genre: string
+          id: string
+          image_url: string | null
+          list_id: string
+          position: number
+          spotify_id: string | null
+          title: string
+        }
+        Insert: {
+          artist: string
+          cover_emoji?: string | null
+          created_at?: string | null
+          genre: string
+          id?: string
+          image_url?: string | null
+          list_id: string
+          position?: number
+          spotify_id?: string | null
+          title: string
+        }
+        Update: {
+          artist?: string
+          cover_emoji?: string | null
+          created_at?: string | null
+          genre?: string
+          id?: string
+          image_url?: string | null
+          list_id?: string
+          position?: number
+          spotify_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          list_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          list_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          list_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_likes_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listen_later: {
         Row: {
           added_at: string | null
@@ -303,6 +386,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      lists: {
+        Row: {
+          comments_count: number | null
+          created_at: string | null
+          description: string
+          genre: string
+          id: string
+          is_public: boolean | null
+          likes_count: number | null
+          story: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          comments_count?: number | null
+          created_at?: string | null
+          description: string
+          genre: string
+          id?: string
+          is_public?: boolean | null
+          likes_count?: number | null
+          story?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          comments_count?: number | null
+          created_at?: string | null
+          description?: string
+          genre?: string
+          id?: string
+          is_public?: boolean | null
+          likes_count?: number | null
+          story?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

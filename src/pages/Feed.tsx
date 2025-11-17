@@ -283,7 +283,11 @@ const Feed = () => {
             ) : (
               <div className="space-y-6">
                 {boards.map((board) => (
-                  <Card key={board.id} className="hover:shadow-medium transition-shadow cursor-pointer">
+                  <Card 
+                    key={board.id} 
+                    className="hover:shadow-medium transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/boards/${board.id}`)}
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
