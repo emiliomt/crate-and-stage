@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Music, LogOut, User, Plus, Disc3, Search, Calendar, Users } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Music, LogOut, User, Plus, Disc3, Search, Calendar, Users, ListMusic } from "lucide-react";
 import { toast } from "sonner";
 interface Album {
   id: string;
@@ -15,6 +16,39 @@ interface Album {
   releaseDate: string;
   type: string;
 }
+
+interface Song {
+  id: string;
+  name: string;
+  artist: string;
+  album?: string;
+  image: string;
+  duration?: number;
+  releaseDate?: string;
+  type: string;
+}
+
+interface List {
+  id: string;
+  title: string;
+  description: string;
+  genre: string;
+  user_id: string;
+  profiles: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+interface UserProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+}
+
 interface Board {
   id: string;
   title: string;
@@ -35,7 +69,11 @@ const Feed = () => {
   const [albumsLoading, setAlbumsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Album[]>([]);
+  const [searchType, setSearchType] = useState<'albums' | 'songs' | 'lists' | 'users'>('albums');
+  const [albumResults, setAlbumResults] = useState<Album[]>([]);
+  const [songResults, setSongResults] = useState<Song[]>([]);
+  const [listResults, setListResults] = useState<List[]>([]);
+  const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   useEffect(() => {
     checkUser();
@@ -93,22 +131,63 @@ const Feed = () => {
   };
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
+      setAlbumResults([]);
+      setSongResults([]);
+      setListResults([]);
+      setUserResults([]);
       return;
     }
     setIsSearching(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('spotify-search', {
-        body: {
-          query: searchQuery,
-          type: 'album'
-        }
-      });
-      if (error) throw error;
-      setSearchResults(data?.albums || []);
+      if (searchType === 'albums') {
+        const { data, error } = await supabase.functions.invoke('spotify-search', {
+          body: { query: searchQuery, type: 'album' }
+        });
+        if (error) throw error;
+        setAlbumResults(data?.albums || []);
+        setSongResults([]);
+        setListResults([]);
+        setUserResults([]);
+      } else if (searchType === 'songs') {
+        const { data, error } = await supabase.functions.invoke('spotify-search', {
+          body: { query: searchQuery, type: 'track' }
+        });
+        if (error) throw error;
+        setSongResults(data?.tracks || []);
+        setAlbumResults([]);
+        setListResults([]);
+        setUserResults([]);
+      } else if (searchType === 'lists') {
+        const { data, error } = await supabase
+          .from("lists")
+          .select(`
+            *,
+            profiles (
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq("is_public", true)
+          .ilike("title", `%${searchQuery}%`)
+          .limit(20);
+        if (error) throw error;
+        setListResults(data || []);
+        setAlbumResults([]);
+        setSongResults([]);
+        setUserResults([]);
+      } else if (searchType === 'users') {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+          .limit(20);
+        if (error) throw error;
+        setUserResults(data || []);
+        setAlbumResults([]);
+        setSongResults([]);
+        setListResults([]);
+      }
     } catch (error: any) {
       toast.error("Search failed. Please try again.");
     } finally {
@@ -156,32 +235,150 @@ const Feed = () => {
             </div>
           </div>
           
-          <div className="max-w-2xl mx-auto flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input type="text" placeholder="Search for albums..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSearch()} className="pl-10" />
+          <div className="max-w-2xl mx-auto">
+            <div className="flex gap-2 mb-3">
+              <Tabs value={searchType} onValueChange={(value) => setSearchType(value as any)} className="flex-1">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="albums">Albums</TabsTrigger>
+                  <TabsTrigger value="songs">Songs</TabsTrigger>
+                  <TabsTrigger value="lists">Lists</TabsTrigger>
+                  <TabsTrigger value="users">Users</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-            <Button onClick={handleSearch} disabled={isSearching}>
-              Search
-            </Button>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="text" 
+                  placeholder={`Search for ${searchType}...`} 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  onKeyPress={e => e.key === 'Enter' && handleSearch()} 
+                  className="pl-10" 
+                />
+              </div>
+              <Button onClick={handleSearch} disabled={isSearching}>
+                Search
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-12">
-          {searchResults.length > 0 && <div>
-              <h2 className="text-2xl font-bold mb-6">Search Results</h2>
+          {/* Album Results */}
+          {albumResults.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Album Results</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {searchResults.map(album => <div key={album.id} className="group cursor-pointer" onClick={() => handleAlbumClick(album)}>
+                {albumResults.map(album => (
+                  <div key={album.id} className="group cursor-pointer" onClick={() => handleAlbumClick(album)}>
                     <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-muted hover:shadow-lg transition-all">
                       <img src={album.image} alt={album.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     </div>
                     <h3 className="font-semibold text-sm text-foreground truncate">{album.name}</h3>
                     <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
-                  </div>)}
+                  </div>
+                ))}
               </div>
-            </div>}
+            </div>
+          )}
+
+          {/* Song Results */}
+          {songResults.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Song Results</h2>
+              <div className="grid gap-3">
+                {songResults.map(song => (
+                  <Card key={song.id} className="hover:shadow-medium transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <img src={song.image} alt={song.name} className="w-16 h-16 rounded" />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold truncate">{song.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+                        </div>
+                        <Music className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* List Results */}
+          {listResults.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">List Results</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {listResults.map(list => (
+                  <Card key={list.id} className="hover:shadow-medium transition-shadow cursor-pointer" onClick={() => navigate(`/lists`)}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={list.profiles.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {list.profiles.display_name?.[0] || list.profiles.username[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-lg">{list.title}</CardTitle>
+                            <CardDescription>
+                              by {list.profiles.display_name || list.profiles.username}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+                          {list.genre}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    {list.description && (
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{list.description}</p>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* User Results */}
+          {userResults.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">User Results</h2>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {userResults.map(userProfile => (
+                  <Card key={userProfile.id} className="hover:shadow-medium transition-shadow cursor-pointer" onClick={() => navigate(`/user/${userProfile.username}`)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={userProfile.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {userProfile.display_name?.[0] || userProfile.username[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold truncate">
+                            {userProfile.display_name || userProfile.username}
+                          </h3>
+                          <p className="text-sm text-muted-foreground truncate">@{userProfile.username}</p>
+                          {userProfile.bio && (
+                            <p className="text-xs text-muted-foreground truncate mt-1">{userProfile.bio}</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-6">
