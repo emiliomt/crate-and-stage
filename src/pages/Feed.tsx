@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Music, LogOut, User, Plus, Disc3, Search, Calendar, Users, ListMusic } from "lucide-react";
+import { Music, LogOut, User, Plus, Disc3, Search, Calendar, Users, ListMusic, Heart } from "lucide-react";
 import { toast } from "sonner";
 interface Album {
   id: string;
@@ -77,10 +77,12 @@ const Feed = () => {
   const [listResults, setListResults] = useState<List[]>([]);
   const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [listenLater, setListenLater] = useState<any[]>([]);
   useEffect(() => {
     checkUser();
     fetchBoards();
     fetchRecommendations();
+    fetchListenLater();
   }, []);
   const checkUser = async () => {
     const {
@@ -129,6 +131,65 @@ const Feed = () => {
       console.error('Failed to load recommendations:', error);
     } finally {
       setAlbumsLoading(false);
+    }
+  };
+
+  const fetchListenLater = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('listen_later')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setListenLater(data || []);
+    } catch (error) {
+      console.error('Failed to load listen later:', error);
+    }
+  };
+
+  const handleAddToListenLater = async (albumId: string, albumName: string, artistName: string, albumImage: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('listen_later')
+        .insert({
+          user_id: user.id,
+          spotify_album_id: albumId,
+          album_name: albumName,
+          artist_name: artistName,
+          album_image: albumImage,
+        });
+      
+      if (error) throw error;
+      toast.success('Added to Listen Later');
+      fetchListenLater();
+    } catch (error) {
+      toast.error('Failed to add to Listen Later');
+    }
+  };
+
+  const handleRemoveFromListenLater = async (albumId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('listen_later')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('spotify_album_id', albumId);
+      
+      if (error) throw error;
+      toast.success('Removed from Listen Later');
+      fetchListenLater();
+    } catch (error) {
+      toast.error('Failed to remove from Listen Later');
     }
   };
   const handleSearch = async () => {
@@ -325,9 +386,42 @@ const Feed = () => {
                           />
                         </div>
                         <div className="space-y-2">
-                          <div>
-                            <h4 className="font-bold text-lg leading-tight">{song.name}</h4>
-                            <p className="text-sm text-muted-foreground">{song.artist}</p>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-lg leading-tight">{song.name}</h4>
+                              <p className="text-sm text-muted-foreground">{song.artist}</p>
+                            </div>
+                            {song.albumId && (() => {
+                              const isInListenLater = listenLater.some(
+                                item => item.spotify_album_id === song.albumId
+                              );
+                              return (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isInListenLater) {
+                                      handleRemoveFromListenLater(song.albumId!);
+                                    } else {
+                                      handleAddToListenLater(
+                                        song.albumId!,
+                                        song.album || song.name,
+                                        song.artist,
+                                        song.image
+                                      );
+                                    }
+                                  }}
+                                  className="flex-shrink-0"
+                                >
+                                  <Heart
+                                    className={`h-5 w-5 ${
+                                      isInListenLater ? 'fill-primary text-primary' : ''
+                                    }`}
+                                  />
+                                </Button>
+                              );
+                            })()}
                           </div>
                           {song.album && (
                             <div className="flex items-start gap-2 text-sm">
