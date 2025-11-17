@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Edit, UserPlus, UserMinus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { FollowButton } from "@/components/FollowButton";
 
 interface Profile {
   id: string;
@@ -23,45 +24,39 @@ interface Board {
   created_at: string;
 }
 
-const Profile = () => {
+const UserProfile = () => {
   const navigate = useNavigate();
+  const { userId } = useParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (userId) {
+      fetchProfile();
+    }
+  }, [userId]);
 
   const fetchProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      setCurrentUserId(user.id);
-
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", userId)
         .single();
 
       if (profileError) throw profileError;
       setProfile(profileData);
 
-      // Fetch user's boards
+      // Fetch user's public boards
       const { data: boardsData, error: boardsError } = await supabase
         .from("boards")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
+        .eq("is_public", true)
         .order("created_at", { ascending: false });
 
       if (boardsError) throw boardsError;
@@ -71,7 +66,7 @@ const Profile = () => {
       const { count: followersCount } = await supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("following_id", user.id);
+        .eq("following_id", userId);
 
       setFollowersCount(followersCount || 0);
 
@@ -79,7 +74,7 @@ const Profile = () => {
       const { count: followingCount } = await supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("follower_id", user.id);
+        .eq("follower_id", userId);
 
       setFollowingCount(followingCount || 0);
     } catch (error: any) {
@@ -106,9 +101,9 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/feed")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Feed
+            Back
           </Button>
         </div>
       </header>
@@ -133,10 +128,7 @@ const Profile = () => {
                       </h1>
                       <p className="text-muted-foreground">@{profile.username}</p>
                     </div>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
+                    <FollowButton userId={profile.id} onFollowChange={fetchProfile} />
                   </div>
                   <div className="flex gap-4 mb-3">
                     <div className="text-sm">
@@ -148,49 +140,51 @@ const Profile = () => {
                       <span className="text-muted-foreground"> following</span>
                     </div>
                   </div>
-                  {profile.bio && <p className="text-foreground mt-4">{profile.bio}</p>}
+                  {profile.bio && (
+                    <p className="text-muted-foreground mt-3">{profile.bio}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Boards Section */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-4">Your Boards</h2>
+          <div>
+            <h2 className="text-2xl font-bold mb-6">Public Boards</h2>
+            {boards.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <p className="text-muted-foreground">No public boards yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {boards.map((board) => (
+                  <Card
+                    key={board.id}
+                    className="cursor-pointer hover:shadow-medium transition-shadow"
+                    onClick={() => navigate(`/boards/${board.id}`)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{board.title}</CardTitle>
+                        <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+                          {board.board_type}
+                        </span>
+                      </div>
+                      {board.description && (
+                        <CardDescription>{board.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-
-          {boards.length === 0 ? (
-            <Card className="text-center py-12">
-              <CardContent>
-                <p className="text-muted-foreground mb-4">You haven't created any boards yet</p>
-                <Button onClick={() => navigate("/create-board")}>Create Your First Board</Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {boards.map((board) => (
-                <Card key={board.id} className="hover:shadow-medium transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg">{board.title}</CardTitle>
-                      <span className="text-xs bg-secondary px-2 py-1 rounded-full">
-                        {board.board_type}
-                      </span>
-                    </div>
-                    {board.description && (
-                      <CardDescription className="line-clamp-2">
-                        {board.description}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          )}
         </div>
       </main>
     </div>
   );
 };
 
-export default Profile;
+export default UserProfile;

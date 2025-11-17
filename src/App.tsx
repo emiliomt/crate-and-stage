@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
+import FollowingFeed from "./pages/FollowingFeed";
 import CreateBoard from "./pages/CreateBoard";
 import MusicSearch from "./pages/MusicSearch";
 import ArtistDetail from "./pages/ArtistDetail";
@@ -18,6 +19,7 @@ import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
 import Reviews from "./pages/Reviews";
 import Albums from "./pages/Albums";
+import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/feed" element={<Feed />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/user/:userId" element={<UserProfile />} />
+          <Route path="/following" element={<FollowingFeed />} />
           <Route path="/create-board" element={<CreateBoard />} />
           <Route path="/music-search" element={<MusicSearch />} />
           <Route path="/artist/:artistId" element={<ArtistDetail />} />
