@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,12 +10,22 @@ import { ArrowLeft, AlertCircle, Music } from "lucide-react";
 import { AlbumGrid } from "@/components/boards/AlbumGrid";
 import { ExpandableDescription } from "@/components/boards/ExpandableDescription";
 import { LikeButton } from "@/components/boards/LikeButton";
+import { AddAlbumDialog } from "@/components/boards/AddAlbumDialog";
 
 export default function BoardDetail() {
   const { boardId } = useParams();
   const navigate = useNavigate();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getCurrentUser();
+  }, []);
+
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['board-detail', boardId],
     queryFn: async () => {
       // Fetch board with creator profile
@@ -138,9 +148,14 @@ export default function BoardDetail() {
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="text-4xl font-bold">{board.title}</h1>
-            <Badge variant="secondary" className="capitalize">
-              {board.board_type}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="capitalize">
+                {board.board_type}
+              </Badge>
+              {currentUserId === board.user_id && (
+                <AddAlbumDialog boardId={boardId!} onAlbumAdded={refetch} />
+              )}
+            </div>
           </div>
         </div>
 
