@@ -73,12 +73,34 @@ serve(async (req) => {
 
     const albumData = await albumResponse.json();
 
+    // Fetch artist details to get genres (albums often don't have genres, but artists do)
+    let artistGenres: string[] = [];
+    if (albumData.artists && albumData.artists.length > 0) {
+      const artistId = albumData.artists[0].id;
+      const artistResponse = await fetch(
+        `https://api.spotify.com/v1/artists/${artistId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+          },
+        }
+      );
+      
+      if (artistResponse.ok) {
+        const artistData = await artistResponse.json();
+        artistGenres = artistData.genres || [];
+      }
+    }
+
     // Format the response
     const formattedAlbum = {
       id: albumData.id,
       name: albumData.name,
       artist: albumData.artists[0]?.name || 'Unknown Artist',
-      artists: albumData.artists,
+      artists: albumData.artists.map((artist: any) => ({
+        ...artist,
+        genres: artistGenres, // Add genres from artist
+      })),
       image: albumData.images[0]?.url || '',
       releaseDate: albumData.release_date,
       totalTracks: albumData.total_tracks,
@@ -87,7 +109,7 @@ serve(async (req) => {
       type: albumData.album_type,
       spotifyUrl: albumData.external_urls.spotify,
       popularity: albumData.popularity,
-      genres: albumData.genres || [],
+      genres: albumData.genres || artistGenres, // Use artist genres if album genres are empty
       copyrights: albumData.copyrights || [],
       availableMarkets: albumData.available_markets?.length || 0,
       tracks: albumData.tracks.items.map((track: any) => ({

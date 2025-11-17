@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, MessageCircle, Share2, Plus, Save, Trash2, GripVertical, Music, Search } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Save, Trash2, GripVertical, Music, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import SpotifySearch from "@/components/SpotifySearch";
 
 interface Album {
   id: number;
@@ -14,6 +16,9 @@ interface Album {
   artist: string;
   genre: string;
   cover: string;
+  spotifyId?: string;
+  image?: string;
+  genres?: string[];
 }
 
 interface MusicList {
@@ -71,6 +76,87 @@ export default function Lists() {
     cover: "🎵",
   });
   const [albumsInList, setAlbumsInList] = useState<Album[]>([]);
+  const [showSpotifySearch, setShowSpotifySearch] = useState(false);
+
+  // Auto-generate genre based on albums added
+  useEffect(() => {
+    if (albumsInList.length > 0) {
+      const genreCounts: Record<string, number> = {};
+      
+      albumsInList.forEach(album => {
+        if (album.genres && album.genres.length > 0) {
+          album.genres.forEach(g => {
+            genreCounts[g] = (genreCounts[g] || 0) + 1;
+          });
+        }
+      });
+      
+      if (Object.keys(genreCounts).length > 0) {
+        const mostCommonGenre = Object.entries(genreCounts)
+          .sort(([, a], [, b]) => b - a)[0][0];
+        
+        // Map Spotify genres to our genre list
+        const genreMapping: Record<string, string> = {
+          'jazz': 'Avant-Jazz',
+          'folk': 'Avant-Folk',
+          'progressive': 'Avant-Prog',
+          'metal': 'Avant-Metal',
+          'rock': 'Avant-Rock',
+          'hip hop': 'Hip Hop',
+          'rap': 'Hip Hop',
+          'r&b': 'R&B',
+          'indie': 'Indie',
+          'electronic': 'Electronic',
+          'classical': 'Classical',
+        };
+        
+        const matchedGenre = Object.entries(genreMapping).find(([key]) => 
+          mostCommonGenre.toLowerCase().includes(key)
+        );
+        
+        if (matchedGenre && newList.genre !== matchedGenre[1]) {
+          setNewList(prev => ({ ...prev, genre: matchedGenre[1] }));
+          toast.success(`Genre auto-set to ${matchedGenre[1]} based on your albums`, {
+            icon: <Sparkles className="h-4 w-4" />
+          });
+        }
+      }
+    }
+  }, [albumsInList]);
+
+  const handleSpotifySelect = async (item: any) => {
+    if (item.type !== 'album') {
+      toast.error("Please select an album");
+      return;
+    }
+
+    try {
+      // Fetch full album details including genres
+      const { data, error } = await supabase.functions.invoke('spotify-album-details', {
+        body: { albumId: item.id }
+      });
+
+      if (error) throw error;
+
+      const newAlbum: Album = {
+        id: Date.now(),
+        title: data.name,
+        artist: data.artist,
+        genre: currentAlbum.genre,
+        cover: "🎵",
+        spotifyId: data.id,
+        image: data.image,
+        genres: data.artists[0]?.genres || [],
+      };
+
+      setAlbumsInList([...albumsInList, newAlbum]);
+      setShowSpotifySearch(false);
+      toast.success("Album added from Spotify!");
+    } catch (error: any) {
+      console.error('Error fetching album details:', error);
+      toast.error("Failed to add album");
+    }
+  };
 
   const genres = [
     "Avant-Jazz", "Avant-Folk", "Avant-Prog", "Avant-Metal", "Avant-Rock",
@@ -169,7 +255,15 @@ export default function Lists() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Primary Genre</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Primary Genre</label>
+                    {albumsInList.length > 0 && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        Auto-suggested
+                      </span>
+                    )}
+                  </div>
                   <Select value={newList.genre} onValueChange={(value) => setNewList({ ...newList, genre: value })}>
                     <SelectTrigger className="bg-background">
                       <SelectValue />
@@ -200,59 +294,80 @@ export default function Lists() {
 
           <Card className="bg-card border-border">
             <CardContent className="p-6 space-y-6">
-              <h2 className="text-2xl font-bold">Add Albums</h2>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Album Title</label>
-                  <Input
-                    value={currentAlbum.title}
-                    onChange={(e) => setCurrentAlbum({ ...currentAlbum, title: e.target.value })}
-                    placeholder="Album name"
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Artist</label>
-                  <Input
-                    value={currentAlbum.artist}
-                    onChange={(e) => setCurrentAlbum({ ...currentAlbum, artist: e.target.value })}
-                    placeholder="Artist name"
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Genre</label>
-                  <Select value={currentAlbum.genre} onValueChange={(value) => setCurrentAlbum({ ...currentAlbum, genre: value })}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {genres.map(genre => (
-                        <SelectItem key={genre} value={genre}>{genre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Cover Emoji</label>
-                  <Input
-                    value={currentAlbum.cover}
-                    onChange={(e) => setCurrentAlbum({ ...currentAlbum, cover: e.target.value })}
-                    placeholder="🎵"
-                    className="bg-background"
-                    maxLength={2}
-                  />
-                </div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Add Albums</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSpotifySearch(!showSpotifySearch)}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  {showSpotifySearch ? 'Manual Entry' : 'Search Spotify'}
+                </Button>
               </div>
+              
+              {showSpotifySearch ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Search and select albums from Spotify. Genre will be auto-suggested based on your selections.
+                  </p>
+                  <SpotifySearch onSelectItem={handleSpotifySelect} />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Album Title</label>
+                      <Input
+                        value={currentAlbum.title}
+                        onChange={(e) => setCurrentAlbum({ ...currentAlbum, title: e.target.value })}
+                        placeholder="Album name"
+                        className="bg-background"
+                      />
+                    </div>
 
-              <Button onClick={handleAddAlbum} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Album to List
-              </Button>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Artist</label>
+                      <Input
+                        value={currentAlbum.artist}
+                        onChange={(e) => setCurrentAlbum({ ...currentAlbum, artist: e.target.value })}
+                        placeholder="Artist name"
+                        className="bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Genre</label>
+                      <Select value={currentAlbum.genre} onValueChange={(value) => setCurrentAlbum({ ...currentAlbum, genre: value })}>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {genres.map(genre => (
+                            <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Cover Emoji</label>
+                      <Input
+                        value={currentAlbum.cover}
+                        onChange={(e) => setCurrentAlbum({ ...currentAlbum, cover: e.target.value })}
+                        placeholder="🎵"
+                        className="bg-background"
+                        maxLength={2}
+                      />
+                    </div>
+                  </div>
+
+                  <Button onClick={handleAddAlbum} className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Album to List
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -268,10 +383,24 @@ export default function Lists() {
                   {albumsInList.map((album) => (
                     <div key={album.id} className="flex items-center gap-4 p-4 bg-background rounded-lg border border-border">
                       <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
-                      <span className="text-2xl">{album.cover}</span>
+                      {album.image ? (
+                        <img 
+                          src={album.image} 
+                          alt={album.title}
+                          className="w-12 h-12 rounded object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl">{album.cover}</span>
+                      )}
                       <div className="flex-1">
                         <p className="font-semibold">{album.title}</p>
                         <p className="text-sm text-muted-foreground">{album.artist} • {album.genre}</p>
+                        {album.spotifyId && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <Music className="h-3 w-3" />
+                            From Spotify
+                          </p>
+                        )}
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => handleRemoveAlbum(album.id)}>
                         <Trash2 className="h-4 w-4" />
