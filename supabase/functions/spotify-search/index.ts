@@ -75,14 +75,16 @@ serve(async (req) => {
 
     // Format the results
     const results = {
-      albums: data.albums?.items.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        artist: item.artists[0]?.name,
-        image: item.images[0]?.url,
-        releaseDate: item.release_date,
-        type: 'album',
-      })) || [],
+      albums: data.albums?.items
+        .filter((item: any) => item.album_type === 'album' || item.album_type === 'compilation')
+        .map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          artist: item.artists[0]?.name,
+          image: item.images[0]?.url,
+          releaseDate: item.release_date,
+          type: 'album',
+        })) || [],
       tracks: data.tracks?.items.map((item: any) => ({
         id: item.id,
         name: item.name,
