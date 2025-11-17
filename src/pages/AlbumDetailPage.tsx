@@ -102,6 +102,8 @@ export default function AlbumDetailPage() {
   const [vinylResults, setVinylResults] = useState<DiscogsVinylResult[]>([]);
   const [vinylLoading, setVinylLoading] = useState(false);
   const [vinylDialogOpen, setVinylDialogOpen] = useState(false);
+  const [listsContainingAlbum, setListsContainingAlbum] = useState<any[]>([]);
+  const [listsLoading, setListsLoading] = useState(false);
 
   useEffect(() => {
     if (albumId) {
@@ -110,6 +112,7 @@ export default function AlbumDetailPage() {
       fetchFriendsRatings();
       fetchTrackRatings();
       fetchReviews();
+      fetchListsContainingAlbum();
     }
   }, [albumId]);
 
@@ -359,6 +362,52 @@ export default function AlbumDetailPage() {
       }
     } catch (error) {
       console.error("Error fetching reviews:", error);
+    }
+  };
+
+  const fetchListsContainingAlbum = async () => {
+    if (!albumId) return;
+    
+    setListsLoading(true);
+    try {
+      // Fetch list items that contain this album, joined with list details
+      const { data, error } = await supabase
+        .from("list_items")
+        .select(`
+          list_id,
+          lists (
+            id,
+            title,
+            description,
+            genre,
+            user_id,
+            is_public,
+            likes_count,
+            created_at,
+            profiles!lists_user_id_fkey (
+              username,
+              display_name,
+              avatar_url
+            )
+          )
+        `)
+        .eq("spotify_id", albumId);
+
+      if (error) throw error;
+
+      // Filter out nulls and extract the lists
+      const uniqueLists = data
+        ?.filter((item: any) => item.lists)
+        .map((item: any) => item.lists)
+        .filter((list: any, index: number, self: any[]) => 
+          index === self.findIndex((l: any) => l.id === list.id)
+        ) || [];
+
+      setListsContainingAlbum(uniqueLists);
+    } catch (error) {
+      console.error("Error fetching lists:", error);
+    } finally {
+      setListsLoading(false);
     }
   };
 
@@ -814,7 +863,64 @@ export default function AlbumDetailPage() {
               </TabsContent>
 
               <TabsContent value="lists">
-                <p className="text-muted-foreground">Lists coming soon...</p>
+                {listsLoading ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Loading lists...</p>
+                  </div>
+                ) : listsContainingAlbum.length > 0 ? (
+                  <div className="space-y-4">
+                    {listsContainingAlbum.map((list: any) => (
+                      <Card 
+                        key={list.id} 
+                        className="hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => navigate(`/lists/${list.id}`)}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg mb-1">{list.title}</h3>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {list.description}
+                              </p>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                {list.profiles && (
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6">
+                                      {list.profiles.avatar_url && (
+                                        <AvatarImage src={list.profiles.avatar_url} />
+                                      )}
+                                      <AvatarFallback>
+                                        {(list.profiles.display_name || list.profiles.username || '?')[0].toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span>{list.profiles.display_name || list.profiles.username}</span>
+                                  </div>
+                                )}
+                                <Badge variant="secondary">{list.genre}</Badge>
+                                {list.likes_count > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    <Heart className="h-4 w-4" />
+                                    <span>{list.likes_count}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <ListMusic className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">
+                      This album hasn't been added to any lists yet
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Be the first to add it to your music list!
+                    </p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="ratings">
