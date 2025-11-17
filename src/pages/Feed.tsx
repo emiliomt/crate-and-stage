@@ -22,6 +22,7 @@ interface Song {
   name: string;
   artist: string;
   album?: string;
+  albumId?: string;
   image: string;
   duration?: number;
   releaseDate?: string;
@@ -292,13 +293,20 @@ const Feed = () => {
               <h2 className="text-2xl font-bold mb-6">Song Results</h2>
               <div className="grid gap-3">
                 {songResults.map(song => (
-                  <Card key={song.id} className="hover:shadow-medium transition-shadow">
+                  <Card 
+                    key={song.id} 
+                    className="hover:shadow-medium transition-shadow cursor-pointer"
+                    onClick={() => song.albumId && navigate(`/album-detail/${song.albumId}`)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
                         <img src={song.image} alt={song.name} className="w-16 h-16 rounded" />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold truncate">{song.name}</h3>
                           <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+                          {song.album && (
+                            <p className="text-xs text-muted-foreground truncate">{song.album}</p>
+                          )}
                         </div>
                         <Music className="h-5 w-5 text-muted-foreground" />
                       </div>
