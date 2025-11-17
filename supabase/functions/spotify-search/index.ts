@@ -87,6 +87,8 @@ serve(async (req) => {
         id: item.id,
         name: item.name,
         artist: item.artists[0]?.name,
+        album: item.album?.name,
+        albumId: item.album?.id,
         image: item.album?.images[0]?.url,
         releaseDate: item.album?.release_date,
         type: 'track',
