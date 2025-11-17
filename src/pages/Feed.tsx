@@ -124,11 +124,11 @@ const Feed = () => {
       const {
         data,
         error
-      } = await supabase.functions.invoke('spotify-recommendations');
+      } = await supabase.functions.invoke('spotify-top-albums');
       if (error) throw error;
       setAlbums(data.albums || []);
     } catch (error: any) {
-      console.error('Failed to load recommendations:', error);
+      console.error('Failed to load top albums:', error);
     } finally {
       setAlbumsLoading(false);
     }
@@ -520,8 +520,8 @@ const Feed = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold mb-1">Popular This Week</h2>
-                <p className="text-sm text-muted-foreground">New releases and trending albums</p>
+                <h2 className="text-2xl font-bold mb-1">World Top 50 Albums</h2>
+                <p className="text-sm text-muted-foreground">Most popular albums globally on Spotify</p>
               </div>
             </div>
             
