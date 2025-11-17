@@ -15,6 +15,7 @@ import AlbumDetail from "./pages/AlbumDetail";
 import AlbumDetailPage from "./pages/AlbumDetailPage";
 import Concerts from "./pages/Concerts";
 import Lists from "./pages/Lists";
+import ListDetail from "./pages/ListDetail";
 import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
 import Reviews from "./pages/Reviews";
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/album-detail/:albumId" element={<AlbumDetailPage />} />
           <Route path="/concerts" element={<Concerts />} />
           <Route path="/lists" element={<Lists />} />
+          <Route path="/lists/:listId" element={<ListDetail />} />
           <Route path="/boards" element={<Boards />} />
           <Route path="/boards/:boardId" element={<BoardDetail />} />
           <Route path="/reviews" element={<Reviews />} />
