@@ -41,11 +41,11 @@ const UserProfile = () => {
 
   const fetchProfile = async () => {
     try {
-      // Fetch profile
+      // Fetch profile by username
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", userId)
+        .eq("username", userId)
         .single();
 
       if (profileError) throw profileError;
@@ -55,7 +55,7 @@ const UserProfile = () => {
       const { data: boardsData, error: boardsError } = await supabase
         .from("boards")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", profileData.id)
         .eq("is_public", true)
         .order("created_at", { ascending: false });
 
@@ -66,7 +66,7 @@ const UserProfile = () => {
       const { count: followersCount } = await supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("following_id", userId);
+        .eq("following_id", profileData.id);
 
       setFollowersCount(followersCount || 0);
 
@@ -74,7 +74,7 @@ const UserProfile = () => {
       const { count: followingCount } = await supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("follower_id", userId);
+        .eq("follower_id", profileData.id);
 
       setFollowingCount(followingCount || 0);
     } catch (error: any) {
