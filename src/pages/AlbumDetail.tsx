@@ -112,7 +112,9 @@ export default function AlbumDetail() {
               <div className="md:col-span-2 space-y-4">
                 <div>
                   <h1 className="text-4xl font-bold mb-2">{albumInfo.name}</h1>
-                  <p className="text-xl text-muted-foreground mb-4">{albumInfo.artist}</p>
+                  <p className="text-xl text-muted-foreground mb-4 hover:text-foreground hover:underline cursor-pointer transition-colors">
+                    {albumInfo.artist}
+                  </p>
                   
                   <div className="flex flex-wrap gap-2">
                     {albumInfo.genre && (
