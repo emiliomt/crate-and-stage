@@ -11,7 +11,75 @@ serve(async (req) => {
   }
 
   try {
-    const { query, type = 'album,track,artist' } = await req.json();
+    const { query, type = 'album,track,artist', id } = await req.json();
+
+    // If ID is provided, fetch specific artist/album/track
+    if (id && type.includes('artist')) {
+      const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
+      const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
+
+      if (!clientId || !clientSecret) {
+        console.error('Spotify credentials not configured');
+        return new Response(
+          JSON.stringify({ error: 'Spotify API not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get Spotify access token
+      const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        },
+        body: 'grant_type=client_credentials',
+      });
+
+      if (!tokenResponse.ok) {
+        const error = await tokenResponse.text();
+        console.error('Spotify token error:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to authenticate with Spotify' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { access_token } = await tokenResponse.json();
+
+      // Fetch artist, top tracks, and albums in parallel
+      const [artistResponse, topTracksResponse, albumsResponse] = await Promise.all([
+        fetch(`https://api.spotify.com/v1/artists/${id}`, {
+          headers: { 'Authorization': `Bearer ${access_token}` },
+        }),
+        fetch(`https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`, {
+          headers: { 'Authorization': `Bearer ${access_token}` },
+        }),
+        fetch(`https://api.spotify.com/v1/artists/${id}/albums?include_groups=album,single&limit=50`, {
+          headers: { 'Authorization': `Bearer ${access_token}` },
+        }),
+      ]);
+
+      if (!artistResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: 'Artist not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const artist = await artistResponse.json();
+      const topTracks = await topTracksResponse.json();
+      const albums = await albumsResponse.json();
+
+      return new Response(
+        JSON.stringify({
+          artist,
+          topTracks: topTracks.tracks || [],
+          albums: albums.items || [],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!query) {
       return new Response(

@@ -694,7 +694,18 @@ export default function AlbumDetailPage() {
               <div className="md:col-span-2 space-y-4">
                 <div>
                   <h1 className="text-4xl font-bold mb-2">{album.name}</h1>
-                  <p className="text-xl text-muted-foreground mb-1">{album.artist}</p>
+                  <button 
+                    onClick={() => {
+                      // Extract first artist ID for navigation
+                      const firstArtist = album.artists?.[0];
+                      if (firstArtist?.id) {
+                        navigate(`/artist/${firstArtist.id}`);
+                      }
+                    }}
+                    className="text-xl text-muted-foreground hover:text-foreground hover:underline transition-colors mb-1 cursor-pointer"
+                  >
+                    {album.artist}
+                  </button>
                   <p className="text-sm text-muted-foreground">
                     {album.type} • {album.releaseDate} • {album.totalTracks} Tracks
                   </p>
